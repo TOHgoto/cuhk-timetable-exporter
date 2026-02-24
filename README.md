@@ -28,12 +28,12 @@ pip install -r requirements.txt
 
 ### 方式一：自動打開瀏覽器（推薦）
 
-1. 建立 `my_courses.txt`，每行一個課程代碼（如 `ROSE5720`）
+1. 編輯 `my_courses.txt`，每行一個課程代碼（如 `ROSE5720`）
 2. 執行：
    ```bash
    python -m cuhk_timetable_export --fetch-teaching --selected-file my_courses.txt -f ics -o my_timetable
    ```
-3. 瀏覽器打開後：輸入驗證碼 → 點擊 Search → 等待結果載入 → 回到終端按 Enter
+3. 瀏覽器打開後：依次選擇 **Academic Career**、**Academic Term**，填寫 **Course Subject** 或 **Course Offering Dept**，輸入 **Verification Code** → 點擊「Search」→ 等待結果載入 → 回到終端按 Enter
 
 學期起訖從結果頁「Meeting Date」自動推斷。
 

@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+
+# Local virtualenv
+.venv/
+
+# Generated timetable files
+my_timetable.*
+*.ics
+
+# macOS
+.DS_Store
