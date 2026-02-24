@@ -99,10 +99,17 @@ def main() -> int:
                 if (s := line.strip()) and not s.startswith("#")
             )
         if not selected_classes:
-            print(
-                "Error: --fetch-teaching requires course list. Use --selected-file my_courses.txt (one course code per line, e.g. ROSE5720).",
-                file=sys.stderr,
-            )
+            if args.selected_file and Path(args.selected_file).exists():
+                print(
+                    f"Error: No course codes found in {args.selected_file} (file has only comments or empty lines). "
+                    "Add one course code per line, e.g. ROSE5720 (lines starting with # are ignored).",
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    "Error: --fetch-teaching requires course list. Use --selected-file my_courses.txt (one course code per line, e.g. ROSE5720).",
+                    file=sys.stderr,
+                )
             return 1
         try:
             print("Fetching Teaching Timetable page...")
