@@ -15,10 +15,28 @@
 
 ## 安裝
 
+### macOS / Linux
+
 ```bash
 cd cuhk-timetable-exporter
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Windows（PowerShell）
+
+```powershell
+cd E:\GitHub\cuhk-timetable-exporter   # 或你的實際路徑
+python -m venv .venv                   # Windows 通常是 python，而不是 python3
+
+# 第一次使用虛擬環境時，如遇「禁止運行腳本」錯誤，先執行（只需一次）：
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 之後每次啟動虛擬環境：
+.\.venv\Scripts\Activate.ps1
+
+# 安裝依賴
 pip install -r requirements.txt
 ```
 
