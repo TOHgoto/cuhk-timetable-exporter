@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import icalendar
+import pytz
+import uuid
+import hashlib
 
 # Hong Kong timezone for calendar
 TZ_HK = "Asia/Hong_Kong"
@@ -58,17 +61,27 @@ def export_ics(courses: list[dict], out_path: str | Path) -> None:
         location = c.get("FDESCR", "")
 
         event = icalendar.Event()
+        
+        # Deterministic UID
+        uid_string = f"{summary}-{c.get('START_DT', '')}-{start.isoformat()}"
+        uid_hash = hashlib.md5(uid_string.encode('utf-8')).hexdigest()
+        event.add("uid", f"{uid_hash}@cuhk-timetable-export")
+        
         event.add("summary", summary)
         event.add("description", desc)
         event.add("location", location)
-        event.add("dtstart", start)
-        event.add("dtend", end)
-        event.add("dtstamp", datetime.now())
+        
+        hk_tz = pytz.timezone(TZ_HK)
+        event.add("dtstart", hk_tz.localize(start))
+        event.add("dtend", hk_tz.localize(end))
+        event.add("dtstamp", datetime.now(timezone.utc))
         # Weekly recurrence until end date (ICAL UNTIL is date in UTC)
         end_date = c.get("END_DT", "")
         if end_date:
-            until_ical = datetime.strptime(end_date, "%Y-%m-%d").strftime("%Y%m%dT235959Z")
-            event.add("rrule", f"FREQ=WEEKLY;UNTIL={until_ical}")
+            until_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59, tzinfo=timezone.utc
+            )
+            event.add("rrule", {"freq": "weekly", "until": until_dt})
         cal.add_component(event)
 
     Path(out_path).write_text(cal.to_ical().decode("utf-8"), encoding="utf-8")
