@@ -119,6 +119,8 @@ def _normalize_day(text: str) -> str | None:
         "sun": "Sun",
         "sunday": "Sun",
     }
+    if t in mapping:
+        return mapping[t]
     for key, val in mapping.items():
         if t.startswith(key):
             return val
@@ -153,7 +155,7 @@ def _split_class_code(code: str) -> tuple[str, str, str]:
     Split class code like 'ROSE5720-' or 'ROSE5910A' into
     (SUBJECT, CATALOG_NBR, CLASS_SECTION).
     """
-    m = re.match(r"^([A-Z]{4})(\d{4})(.*)$", code.strip())
+    m = re.match(r"^([A-Z]{2,6})(\d{3,4})(.*)$", code.strip())
     if not m:
         return "", code.strip(), ""
     subj, catalog, section = m.groups()
@@ -273,7 +275,8 @@ def _record_matches_selected(record: Dict[str, str], selected: List[str]) -> boo
             continue
         if nbr and nbr == t:
             return True
-        if code_raw and (t == code_raw or code_raw.startswith(t) or t in code_raw):
+        # Exact match, or base course code (e.g. ELTU1001 matches ELTU1001-)
+        if code_raw and (t == code_raw or code_raw == f"{t}-"):
             return True
     return False
 
