@@ -39,12 +39,12 @@ def export_ics(courses: list[dict], out_path: str | Path) -> None:
 
     for c in courses:
         try:
-            # First meeting date for this class
-            start = _parse_time(
-                c.get("START_DT", ""), c.get("MEETING_TIME_START", "")
-            )
-            # Same day, but using meeting end time
-            end = _parse_time(c.get("START_DT", ""), c.get("MEETING_TIME_END", ""))
+            # Use SINGLE_DATE if available (per-date events from dynamic scraping)
+            single_date = c.get("SINGLE_DATE")
+            event_date = single_date if single_date else c.get("START_DT", "")
+
+            start = _parse_time(event_date, c.get("MEETING_TIME_START", ""))
+            end = _parse_time(event_date, c.get("MEETING_TIME_END", ""))
         except (ValueError, KeyError):
             continue
 
@@ -62,8 +62,8 @@ def export_ics(courses: list[dict], out_path: str | Path) -> None:
 
         event = icalendar.Event()
         
-        # Deterministic UID
-        uid_string = f"{summary}-{c.get('START_DT', '')}-{start.isoformat()}"
+        # Deterministic UID (include SINGLE_DATE if available for uniqueness)
+        uid_string = f"{summary}-{event_date}-{start.isoformat()}"
         uid_hash = hashlib.md5(uid_string.encode('utf-8')).hexdigest()
         event.add("uid", f"{uid_hash}@cuhk-timetable-export")
         
@@ -75,13 +75,16 @@ def export_ics(courses: list[dict], out_path: str | Path) -> None:
         event.add("dtstart", hk_tz.localize(start))
         event.add("dtend", hk_tz.localize(end))
         event.add("dtstamp", datetime.now(timezone.utc))
-        # Weekly recurrence until end date (ICAL UNTIL is date in UTC)
-        end_date = c.get("END_DT", "")
-        if end_date:
-            until_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(
-                hour=23, minute=59, second=59, tzinfo=timezone.utc
-            )
-            event.add("rrule", {"freq": "weekly", "until": until_dt})
+
+        # Only add RRULE for non-single-date events (backward compatibility)
+        if not single_date:
+            end_date = c.get("END_DT", "")
+            if end_date:
+                until_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(
+                    hour=23, minute=59, second=59, tzinfo=timezone.utc
+                )
+                event.add("rrule", {"freq": "weekly", "until": until_dt})
+
         cal.add_component(event)
 
     Path(out_path).write_text(cal.to_ical().decode("utf-8"), encoding="utf-8")

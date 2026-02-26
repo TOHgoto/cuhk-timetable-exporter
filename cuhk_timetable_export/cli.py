@@ -15,6 +15,8 @@ from . import __version__
 from .export import export
 from .teaching_fetch import fetch_teaching_timetable_html
 from .teaching_html import parse_teaching_html
+from .schedule_html import parse_schedule_html
+from .schedule_fetch import fetch_schedule
 
 
 def _load_selected_classes(args) -> list[str]:
@@ -65,6 +67,16 @@ def main() -> int:
         "--teaching-html",
         metavar="HTML_PATH",
         help="Use Teaching Timetable HTML file instead of SID/password. No login required.",
+    )
+    mode.add_argument(
+        "--schedule-html",
+        metavar="HTML_PATH",
+        help="Use saved 'My Weekly Schedule' HTML from CUSIS. Save the page as 'Complete Webpage' in your browser.",
+    )
+    mode.add_argument(
+        "--fetch-schedule",
+        action="store_true",
+        help="Fetch complete semester schedule from CUSIS (requires login). Iterates week-by-week to capture exact schedule.",
     )
 
     # Teaching Timetable mode options
@@ -180,10 +192,33 @@ def main() -> int:
                 print(f"{code:<16} | {nbr:<9} | {title}")
             print("\nUse: --selected ROSE5720,9578,ROSE5730  (or put identifiers in a file and use --selected-file)")
             return 0
+    # My Weekly Schedule mode from saved HTML
+    elif args.schedule_html:
+        try:
+            courses = parse_schedule_html(
+                html_path=args.schedule_html,
+                start_date=args.term_start,
+                end_date=args.term_end,
+            )
+        except Exception as e:
+            print(f"Error parsing My Weekly Schedule HTML: {e}", file=sys.stderr)
+            return 1
+
+    # Dynamic schedule scraping (login to CUSIS, iterate weeks)
+    elif args.fetch_schedule:
+        try:
+            courses = fetch_schedule(
+                term_start=args.term_start,
+                term_end=args.term_end,
+            )
+        except Exception as e:
+            print(f"Error fetching schedule: {e}", file=sys.stderr)
+            return 1
+
     else:
         print(
-            "No mode specified. Use --fetch-teaching to fetch from Teaching Timetable website "
-            "or --teaching-html for a saved HTML file.",
+            "No mode specified. Use --fetch-teaching, --teaching-html, "
+            "--schedule-html, or --fetch-schedule.",
             file=sys.stderr,
         )
         return 1
