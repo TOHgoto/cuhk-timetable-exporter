@@ -12,9 +12,9 @@ build/
 # Test cache
 .pytest_cache/
 
-# Generated timetable files
+# Generated timetable files (root only, not example/)
 my_timetable.*
-*.ics
+/*.ics
 
 # Personal data (saved HTML pages, login sessions)
 /data/
