@@ -17,6 +17,23 @@ from .teaching_fetch import fetch_teaching_timetable_html
 from .teaching_html import parse_teaching_html
 
 
+def _load_selected_classes(args) -> list[str]:
+    classes = []
+    if args.selected:
+        classes.extend(s.strip() for s in args.selected.split(",") if s.strip())
+    if args.selected_file:
+        p = Path(args.selected_file)
+        if not p.exists():
+            print(f"Error: --selected-file not found: {p}", file=sys.stderr)
+            sys.exit(1)
+        classes.extend(
+            line.strip()
+            for line in p.read_text(encoding="utf-8").splitlines()
+            if (s := line.strip()) and not s.startswith("#")
+        )
+    return classes
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -85,19 +102,7 @@ def main() -> int:
 
     # Fetch Teaching Timetable from website (captcha only manual step)
     if args.fetch_teaching:
-        selected_classes: list[str] = []
-        if args.selected:
-            selected_classes.extend(s.strip() for s in args.selected.split(",") if s.strip())
-        if args.selected_file:
-            p = Path(args.selected_file)
-            if not p.exists():
-                print(f"Error: --selected-file not found: {p}", file=sys.stderr)
-                return 1
-            selected_classes.extend(
-                line.strip()
-                for line in p.read_text(encoding="utf-8").splitlines()
-                if (s := line.strip()) and not s.startswith("#")
-            )
+        selected_classes: list[str] = _load_selected_classes(args)
         if not selected_classes:
             if args.selected_file and Path(args.selected_file).exists():
                 print(
@@ -112,44 +117,42 @@ def main() -> int:
                 )
             return 1
         try:
-            print("Fetching Teaching Timetable page...")
-            result_html = fetch_teaching_timetable_html(course_codes=selected_classes)
+            print("Fetching Teaching Timetable page(s)...")
+            html_results = fetch_teaching_timetable_html(course_codes=selected_classes)
         except Exception as e:
             print(f"Error fetching timetable: {e}", file=sys.stderr)
             return 1
-        try:
-            courses = parse_teaching_html(
-                html_content=result_html,
-                start_date=args.term_start,
-                end_date=args.term_end,
-                subject_hint=args.subject_hint,
-                selected_classes=selected_classes,
-            )
-        except Exception as e:
-            print(f"Error parsing result: {e}", file=sys.stderr)
-            return 1
-        ext = {"ics": ".ics", "csv": ".csv", "json": ".json"}[args.format]
-        out_path = Path(args.output).with_suffix(ext) if Path(args.output).suffix else Path(args.output + ext)
-        export(courses, out_path, args.format)
-        print(f"Exported {len(courses)} course(s) to {out_path}")
-        return 0
+        
+        courses = []
+        for html_res in html_results:
+            try:
+                courses.extend(parse_teaching_html(
+                    html_content=html_res,
+                    start_date=args.term_start,
+                    end_date=args.term_end,
+                    subject_hint=args.subject_hint,
+                    selected_classes=selected_classes,
+                ))
+            except Exception as e:
+                print(f"Error parsing result: {e}", file=sys.stderr)
+                return 1
+        
+        # Deduplicate courses by seen_slot logic (in case of overlaps or identical classes)
+        # We can just keep a set of slot keys
+        unique_courses = []
+        seen = set()
+        for c in courses:
+            key = (c.get("CLASS_CODE_RAW"), c.get("CLASS_NBR"), c.get("START_DT"), c.get("MEETING_TIME_START"))
+            if key not in seen:
+                seen.add(key)
+                unique_courses.append(c)
+        courses = unique_courses
+        # Fall through to shared export logic at the bottom
 
     # Teaching Timetable mode from saved HTML (no login)
     elif args.teaching_html:
         # term-start/term-end are optional: auto-inferred from Meeting Date column when omitted
-        selected_classes: list[str] = []
-        if args.selected:
-            selected_classes.extend(s.strip() for s in args.selected.split(",") if s.strip())
-        if args.selected_file:
-            p = Path(args.selected_file)
-            if not p.exists():
-                print(f"Error: --selected-file not found: {p}", file=sys.stderr)
-                return 1
-            selected_classes.extend(
-                line.strip()
-                for line in p.read_text(encoding="utf-8").splitlines()
-                if (s := line.strip()) and not s.startswith("#")
-            )
+        selected_classes: list[str] = _load_selected_classes(args)
         try:
             courses = parse_teaching_html(
                 html_path=args.teaching_html,
