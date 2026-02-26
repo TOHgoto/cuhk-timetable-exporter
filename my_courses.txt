@@ -1,0 +1,9 @@
+# CUHK Timetable Exporter — 我的課程
+# 每行一個課程代碼，# 開頭的行為註釋
+#
+# 格式示例：
+#   ROSE5720       課程代碼
+#   ROSE5720-A     帶 Section
+#   9578           Class Number
+#
+# 在下方添加你的課程 ↓

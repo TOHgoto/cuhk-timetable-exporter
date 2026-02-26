@@ -16,10 +16,10 @@ build/
 my_timetable.*
 *.ics
 
-# User-specific course list (use examples/my_courses.example.txt as template)
-my_courses.txt
+# Personal data (saved HTML pages, login sessions)
+/data/
 
-# Personal archive
+# Personal archive / notes
 archive/
 
 # macOS
