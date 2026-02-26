@@ -4,9 +4,23 @@ __pycache__/
 # Local virtualenv
 .venv/
 
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Test cache
+.pytest_cache/
+
 # Generated timetable files
 my_timetable.*
 *.ics
+
+# User-specific course list (use examples/my_courses.example.txt as template)
+my_courses.txt
+
+# Personal archive
+archive/
 
 # macOS
 .DS_Store
